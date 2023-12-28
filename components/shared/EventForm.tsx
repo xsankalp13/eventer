@@ -18,21 +18,24 @@ import { Checkbox } from "../ui/checkbox"
 import { useUploadThing } from "@/lib/uploadthing"
 import { handleError } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { createEvent } from "@/lib/actions/events.actions"
+import { createEvent, updateEvent } from "@/lib/actions/events.actions"
+import { IEvent } from "@/lib/database/models/event.model"
 
 
 
 
 type EventFormProps = {
     userId: string,
-    type: 'Create' | 'Update'
+    type: 'Create' | 'Update',
+    event?: IEvent,
+    eventId?: string
 }
 
 
-const EventForm = ({ userId, type}: EventFormProps ) => {
+const EventForm = ({ userId, type, event, eventId}: EventFormProps ) => {
 
   const [files, setFiles] = useState<File[]>([]);
-  const initialValues = eventDefaultValues;
+  const initialValues = event && type === 'Update' ? {...event, startDate: new Date(event.startDate), endDate: new Date(event.endDate)} : eventDefaultValues;
   const { startUpload } = useUploadThing('imageUploader')
   const router = useRouter();
     // 1. Define your form.
@@ -61,6 +64,26 @@ const EventForm = ({ userId, type}: EventFormProps ) => {
         if(newEvent) {
           form.reset();
           router.push(`/events/${newEvent._id}`);
+        }
+      } catch (error) {
+        handleError(error);
+      }
+
+    }
+    if(type === 'Update') {
+      if(!eventId){
+        router.back();
+        return;
+      }
+      try {
+        const updatedEvent = await updateEvent({
+          userId,
+          event: {...values, imageUrl: uploadedImageUrl, _id: eventId},
+          path: `/events/${eventId}`
+        })
+        if(updatedEvent) {
+          form.reset();
+          router.push(`/events/${updatedEvent._id}`);
         }
       } catch (error) {
         handleError(error);
@@ -152,7 +175,7 @@ const EventForm = ({ userId, type}: EventFormProps ) => {
         <div className="flex flex-col gap-5 md:flex-row">
             <FormField
               control={form.control}
-              name="startDateTime"
+              name="startDate"
               render={({ field }) => (
                   <FormItem className="w-full">
                   <FormControl className="h-72">
@@ -181,7 +204,7 @@ const EventForm = ({ userId, type}: EventFormProps ) => {
             />
              <FormField
               control={form.control}
-              name="endDateTime"
+              name="endDate"
               render={({ field }) => (
                   <FormItem className="w-full">
                   <FormControl className="h-72">
