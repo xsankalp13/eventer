@@ -52,7 +52,7 @@ export async function getEventById(eventId: string) {
   try {
     await connectToDatabase()
 
-    const event = await populateEvent(Event.findById(eventId))
+    const event:IEvent = await populateEvent(Event.findById(eventId))
 
     if (!event) throw new Error('Event not found')
 
@@ -92,8 +92,8 @@ export async function deleteEvent({ eventId, path}: DeleteEventParams) {
     const event:IEvent = await getEventById(eventId);
     // console.log(event)
     // we can ignore this error because we know file exists
-    const fileName : string = event.imageUrl.split('/').pop()
-    await utapi.deleteFiles(fileName)
+    const fileName = event.imageUrl.split('/').pop()
+    await utapi.deleteFiles(fileName ? [fileName] : [] )
     const deletedEvent = await Event.findByIdAndDelete(eventId)
     if (deletedEvent) revalidatePath(path)
     
